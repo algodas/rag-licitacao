@@ -97,8 +97,12 @@ Quem faz isso é o **Vector Store** do OpenAI durante o processo de ingestão:
      - download do arquivo local correspondente
 
 ---
-
-## Segurança e boas práticas
+### Variáveis de ambiente (obrigatórias)
+- `OPENAI_API_KEY`
+- `VECTOR_STORE_ID` (licitação antiga)
+- `VECTOR_STORE_ID2` (licitação nova)
+- `APP_USER` (login do app)
+- `APP_PASS` (senha do app)
 - Não commite `.env` no GitHub
 - Guarde `OPENAI_API_KEY` apenas como:
   - `.env` no servidor, e/ou
