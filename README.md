@@ -1,118 +1,114 @@
-# RAG Licitações — Busca Semântica com Evidências (Streamlit + OpenAI)
+# RAG for Public Tenders — Semantic Search with Evidence (Streamlit + OpenAI)
 
-## Parte 1 — Explicação “humana” (o que isso resolve)
+## Part 1 — Plain-English overview (what this solves)
 
-### Qual é o propósito da aplicação?
-Esta aplicação foi criada para **evitar retrabalho** na análise de documentos de licitações que já foram realizadas anteriormente.
+### What is the purpose of this app?
+This application was built to **avoid rework** when analyzing tender/bidding documents that have already been processed in the past.
 
-Quando uma nova licitação vai ser preparada e esta licitação já ocorreu no passado para objetos similares a serem licitados, é comum que a equipe precise revisar novamente:
-- Termos de Referência (TR)
-- RFPs / editais
-- anexos técnicos
-- requisitos, SLAs, prazos, “horas de treinamento”, arquitetura, módulos, entregas, etc.
+When a new tender is being prepared—and a similar tender has happened before—it’s common for the team to re-read and re-check:
+- Terms of Reference (ToR)
+- RFPs / tender notices
+- technical annexes
+- requirements, SLAs, timelines, training hours, architecture, modules, deliverables, etc.
 
-O problema é que essa leitura completa é demorada e repetitiva — e a licitação anterior normalmente já contém a maior parte do que você precisa.
+The issue is that a full read-through is slow and repetitive—while the previous tender usually already contains most of what you need.
 
-**O app resolve isso permitindo que você:**
-- faça perguntas em linguagem natural (como num chat)
-- receba uma resposta **baseada nos documentos**
-- veja os **trechos exatos** encontrados (com contexto)
-- baixe o arquivo usado em cada evidência, para validar rapidamente
+**This app solves that by enabling you to:**
+- ask questions in natural language (chat-style)
+- get an answer **grounded in the documents**
+- see the **exact excerpts** found (with context)
+- download the source file behind each piece of evidence to validate quickly
 
-Em outras palavras: você sai do modo “ler 60 arquivos” para o modo “perguntar e confirmar”.
-
----
-
-### Como usar (visão rápida)
-1. Escolha qual base você quer consultar:
-   - **Licitação NOVA** (pasta `doc2` / Vector Store 2)
-   - **Licitação ANTIGA** (pasta `docs` / Vector Store 1)
-2. Digite sua pergunta.
-3. Ajuste o Top-K (quantidade de trechos retornados).
-4. Leia:
-   - um **compilado semântico** do que foi encontrado
-   - a **resposta curta**
-   - os **trechos/ocorrências** com explicação contextual
-5. Baixe o arquivo de cada ocorrência para conferir.
+In other words: you move from “read 60 files” to “ask and confirm”.
 
 ---
 
-## Parte 2 — Explicação técnica (como funciona de verdade)
+### How to use (quick view)
+1. Choose which knowledge base to query:
+   - **NEW Tender** (folder `doc2` / Vector Store 2)
+   - **OLD Tender** (folder `docs` / Vector Store 1)
+2. Type your question.
+3. Adjust Top-K (number of excerpts returned).
+4. Review:
+   - a **semantic digest** of what was found
+   - a **short answer**
+   - the **excerpts/occurrences** with contextual explanation
+5. Download the file for each occurrence to confirm.
 
-### O que é RAG?
+---
+
+## Part 2 — Technical explanation (how it really works)
+
+### What is RAG?
 RAG = **Retrieval-Augmented Generation**.
 
-A ideia é simples:
-1) **Recuperar (Retrieval)** trechos relevantes dos documentos  
-2) **Gerar (Generation)** uma resposta usando esses trechos como base
+The idea is straightforward:
+1) **Retrieve** relevant excerpts from the documents  
+2) **Generate** an answer using those excerpts as the grounding context
 
-Isso reduz alucinação e aumenta confiança, porque a resposta vem **ancorada em evidências**.
-
----
-
-### Onde entram os embeddings?
-Embeddings são o mecanismo que permite busca semântica:
-- um modelo transforma texto em um vetor numérico (lista de números)
-- textos com significado parecido ficam “perto” nesse espaço vetorial
-- a busca retorna os trechos “mais próximos” da sua pergunta
-
-⚠️ No nosso caso, **você não gera embeddings manualmente no código**.
-Quem faz isso é o **Vector Store** do OpenAI durante o processo de ingestão:
-- extrai texto de PDF/PPT/DOC
-- divide em “chunks”
-- cria embeddings
-- indexa para busca
+This reduces hallucination and increases trust, because the response is **anchored in evidence**.
 
 ---
 
-### Arquitetura do app
-- **Frontend**: Streamlit (formulário + expander por ocorrência)
-- **Busca**: `file_search` do OpenAI apontando para um **Vector Store**
-- **Duas bases**:
-  - `VECTOR_STORE_ID` (Licitação ANTIGA)
-  - `VECTOR_STORE_ID2` (Licitação NOVA)
-- **Transparência**:
-  - Top-K configurável (até 40)
-  - Compilado semântico do conjunto de trechos retornados
-  - Explicação contextual por ocorrência
-  - Download do arquivo considerado em cada ocorrência
+### Where do embeddings fit in?
+Embeddings are what enables semantic search:
+- a model transforms text into a numeric vector (a list of numbers)
+- texts with similar meaning end up “close” to each other in vector space
+- search returns the chunks that are “closest” to your question
+
+⚠️ In this project, **you don’t generate embeddings manually in the code**.
+That is handled by the OpenAI **Vector Store** during ingestion:
+- extracts text from PDF/PPT/DOC
+- splits it into chunks
+- creates embeddings
+- indexes everything for retrieval
 
 ---
 
-### Fluxo de execução (passo a passo)
-1. Usuário digita a pergunta
-2. O app:
-   - gera variantes da consulta (PT/EN/ES)
-   - adiciona variantes para recall (ex.: `hour/hours/hr/hrs/hora/horas`)
-3. O app chama o OpenAI com ferramenta:
-   - `file_search` + `vector_store_ids=[store_escolhido]` + `max_num_results=TopK`
-4. O OpenAI retorna uma lista de resultados:
-   - filename + trecho + score (similaridade)
-5. O app exibe:
-   - compilado semântico (resumo dos achados)
-   - resposta curta
-   - lista de ocorrências com:
-     - trecho
-     - explicação contextual
-     - download do arquivo local correspondente
+### App architecture
+- **Frontend**: Streamlit (form + expander per occurrence)
+- **Retrieval**: OpenAI `file_search` tool targeting a **Vector Store**
+- **Two knowledge bases**:
+  - `VECTOR_STORE_ID` (OLD tender)
+  - `VECTOR_STORE_ID2` (NEW tender)
+- **Transparency features**:
+  - configurable Top-K (up to 40)
+  - semantic digest across returned chunks
+  - contextual explanation per occurrence
+  - file download for each retrieved source
 
 ---
-### Variáveis de ambiente (obrigatórias)
+
+### Execution flow (step by step)
+1. User enters a question
+2. The app:
+   - generates query variants (PT/EN/ES)
+   - adds recall variants (e.g., `hour/hours/hr/hrs/hora/horas`)
+3. The app calls OpenAI with:
+   - `file_search` + `vector_store_ids=[selected_store]` + `max_num_results=TopK`
+4. OpenAI returns a list of results:
+   - filename + excerpt + score (similarity)
+5. The app displays:
+   - semantic digest (summary of findings)
+   - short answer
+   - list of occurrences with:
+     - excerpt
+     - contextual explanation
+     - download link to the corresponding local file
+
+---
+
+### Environment variables (required)
 - `OPENAI_API_KEY`
-- `VECTOR_STORE_ID` (licitação antiga)
-- `VECTOR_STORE_ID2` (licitação nova)
-- `APP_USER` (login do app)
-- `APP_PASS` (senha do app)
-- Não commite `.env` no GitHub
-- Guarde `OPENAI_API_KEY` apenas como:
-  - `.env` no servidor, e/ou
-  - GitHub Secrets (para deploy)
-- Rotacione a chave se ela já foi exposta
+- `VECTOR_STORE_ID` (old tender)
+- `VECTOR_STORE_ID2` (new tender)
+- `APP_USER` (app login)
+- `APP_PASS` (app password)
 
----
+**Security notes**
+- Do not commit `.env` to GitHub
+- Store `OPENAI_API_KEY` only as:
+  - a server-side `.env`, and/or
+  - GitHub Secrets (for deployment)
+- Rotate the key if it has been exposed
 
-## Roadmap (opcional)
-- Deploy automatizado via GitHub Actions (CI/CD)
-- Ingestão automatizada (workflow manual `workflow_dispatch`)
-- Links servidos via Nginx (URL real) para “abrir” arquivos no browser sem data-URL
-- Normalização de nomes (acentos/case) para mapear filename ↔ arquivo local com mais tolerância
