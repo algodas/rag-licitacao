@@ -119,9 +119,13 @@ def main():
     here = os.path.dirname(os.path.abspath(__file__))
     docs_dir = os.path.join(here, "docs")
 
+    _docs_real = os.path.realpath(docs_dir)
     paths = sorted(
         p for p in glob.glob(os.path.join(docs_dir, "**", "*"), recursive=True)
-        if os.path.isfile(p) and os.path.getsize(p) > 0
+        if os.path.isfile(p)
+        and not os.path.islink(p)                                        # skip symlinks
+        and os.path.realpath(p).startswith(_docs_real + os.sep)          # stay inside docs_dir
+        and os.path.getsize(p) > 0
     )
 
     if not paths:
@@ -184,6 +188,12 @@ def main():
             continue
 
         # 1) upload
+        _fsize = os.path.getsize(path)
+        if _fsize > 100 * 1024 * 1024:
+            skip += 1
+            skipped.append((fname, ext, f"Arquivo muito grande ({_fsize // (1024*1024)} MB > 100 MB)"))
+            print(f"    ⏭️  SKIP: arquivo muito grande ({_fsize // (1024*1024)} MB). Limite: 100 MB.")
+            continue
         try:
             print("    ⬆️  Uploading para OpenAI (files.create)...")
             with open(path, "rb") as f:
